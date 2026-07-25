@@ -1,0 +1,4 @@
+/.github/CODEOWNERS @M1XZG
+/.github/scripts/ @M1XZG
+/.github/workflows/ @M1XZG
+/.github/validation-requirements.txt @M1XZG
