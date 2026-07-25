@@ -24,7 +24,13 @@ jobs:
         with:
           script: |
             const marker = "<!-- kmart-membership-result -->";
-            const pullRequest = context.payload.pull_request;
+            const eventPullRequest = context.payload.pull_request;
+            const pullResponse = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: eventPullRequest.number,
+            });
+            const pullRequest = pullResponse.data;
             const association = pullRequest.author_association;
             const allowedAssociations = new Set(["MEMBER", "OWNER"]);
 
