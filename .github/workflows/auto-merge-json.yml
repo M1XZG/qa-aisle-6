@@ -137,12 +137,16 @@ jobs:
               (file) => file.status !== "modified" || !allowedDataFiles.has(file.filename),
             );
 
-            if (changedFiles.length === 0 || ineligibleFiles.length) {
+            if (ineligibleFiles.length) {
               const paths = ineligibleFiles.map((file) => `${file.status}: ${file.filename}`);
               core.notice(
                 `PR #${pullNumber} requires manual review: ${paths.join(", ")}`,
               );
               return;
+            }
+
+            if (changedFiles.length === 0) {
+              core.info(`PR #${pullNumber} has no file changes and is safe to merge.`);
             }
 
             const mergeResponse = await github.rest.pulls.merge({
