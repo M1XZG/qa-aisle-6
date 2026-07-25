@@ -1,0 +1,79 @@
+name: Enforce Kmart membership
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  membership:
+    name: Kmart membership
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify pull request author
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const marker = "<!-- kmart-membership-result -->";
+            const pullRequest = context.payload.pull_request;
+            const association = pullRequest.author_association;
+            const allowedAssociations = new Set(["MEMBER", "OWNER"]);
+
+            if (allowedAssociations.has(association)) {
+              core.info(
+                `${pullRequest.user.login} is a VRC-Kmart ${association.toLowerCase()}.`,
+              );
+              return;
+            }
+
+            const body =
+              `${marker}\n## Pull request closed\n\n` +
+              `Only members of the VRC-Kmart GitHub organisation may submit changes ` +
+              `to this QA repository. GitHub reported the author's relationship as ` +
+              `\`${association}\`.`;
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pullRequest.number,
+              per_page: 100,
+            });
+            const existingComment = comments.find(
+              (comment) => comment.user?.type === "Bot" && comment.body?.includes(marker),
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pullRequest.number,
+                body,
+              });
+            }
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullRequest.number,
+              state: "closed",
+            });
+
+            core.setFailed(
+              `${pullRequest.user.login} is not a VRC-Kmart organisation member.`,
+            );
