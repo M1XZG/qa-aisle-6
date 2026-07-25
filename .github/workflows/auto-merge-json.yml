@@ -30,7 +30,6 @@ jobs:
             const run = context.payload.workflow_run;
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const allowedAssociations = new Set(["MEMBER", "OWNER"]);
             const allowedDataFiles = new Set([
               "WorldRecentUpdates/ExpressRecentUpdates.json",
               "WorldRecentUpdates/MainStoreRecentUpdates.json",
@@ -85,13 +84,6 @@ jobs:
 
             if (pullRequest.base.ref !== "main" || pullRequest.head.sha !== run.head_sha) {
               core.info(`Ignoring stale or non-main workflow run ${run.id}.`);
-              return;
-            }
-
-            if (!allowedAssociations.has(pullRequest.author_association)) {
-              core.warning(
-                `PR #${pullNumber} author association is ${pullRequest.author_association}.`,
-              );
               return;
             }
 
