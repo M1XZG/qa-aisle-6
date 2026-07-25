@@ -1291,7 +1291,7 @@
     {
       "VRC_Username": "Wild Wanderer",
       "RegistryTimeStamp": 1763223826423,
-      "Dev": true
+      "Dev": true,
       "FunnyCallboxes": true,
       "Departments": [
         { "Name": "Bribes His Way Onto Teams" },
