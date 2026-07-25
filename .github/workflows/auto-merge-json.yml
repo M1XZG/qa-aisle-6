@@ -149,6 +149,48 @@ jobs:
               core.info(`PR #${pullNumber} has no file changes and is safe to merge.`);
             }
 
+            let currentPullRequest = pullRequest;
+            for (let attempt = 0; attempt < 6; attempt += 1) {
+              const currentResponse = await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: pullNumber,
+              });
+              currentPullRequest = currentResponse.data;
+              if (currentPullRequest.mergeable_state !== "unknown") {
+                break;
+              }
+              await new Promise((resolve) => setTimeout(resolve, 2000));
+            }
+
+            if (currentPullRequest.head.sha !== run.head_sha) {
+              core.info(`PR #${pullNumber} changed while auto-merge was running.`);
+              return;
+            }
+
+            if (currentPullRequest.mergeable_state === "behind") {
+              if (!currentPullRequest.maintainer_can_modify) {
+                core.setFailed(
+                  `PR #${pullNumber} is behind main and does not allow maintainer updates.`,
+                );
+                return;
+              }
+
+              await github.request(
+                "PUT /repos/{owner}/{repo}/pulls/{pull_number}/update-branch",
+                {
+                  owner,
+                  repo,
+                  pull_number: pullNumber,
+                  expected_head_sha: run.head_sha,
+                },
+              );
+              core.info(
+                `Updated PR #${pullNumber}; checks will rerun before automatic merge.`,
+              );
+              return;
+            }
+
             const mergeResponse = await github.rest.pulls.merge({
               owner,
               repo,
